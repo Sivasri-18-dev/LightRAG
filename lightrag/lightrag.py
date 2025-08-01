@@ -739,7 +739,7 @@ class LightRAG:
     # TODO: deprecated, use ainsert instead
     async def ainsert_custom_chunks(
         self, full_text: str, text_chunks: list[str], doc_id: str | None = None
-    ) -> None:
+    , entity_types=None) -> None:
         update_storage = False
         try:
             # Clean input texts
@@ -786,7 +786,7 @@ class LightRAG:
 
             tasks = [
                 self.chunks_vdb.upsert(inserting_chunks),
-                self._process_entity_relation_graph(inserting_chunks),
+                self._process_entity_relation_graph(inserting_chunks,entity_types=entity_types),
                 self.full_docs.upsert(new_docs),
                 self.text_chunks.upsert(inserting_chunks),
             ]
@@ -955,6 +955,7 @@ class LightRAG:
         self,
         split_by_character: str | None = None,
         split_by_character_only: bool = False,
+        entity_types=None
     ) -> None:
         """
         Process pending documents by splitting them into chunks, processing
@@ -1061,7 +1062,7 @@ class LightRAG:
                     pipeline_status: dict,
                     pipeline_status_lock: asyncio.Lock,
                     semaphore: asyncio.Semaphore,
-                ) -> None:
+                    entity_types=None) -> None:
                     """Process single document"""
                     file_extraction_stage_ok = False
                     async with semaphore:
@@ -1168,7 +1169,7 @@ class LightRAG:
                             # Stage 2: Process entity relation graph (after text_chunks are saved)
                             entity_relation_task = asyncio.create_task(
                                 self._process_entity_relation_graph(
-                                    chunks, pipeline_status, pipeline_status_lock
+                                    chunks, pipeline_status, pipeline_status_lock,entity_types=entity_types
                                 )
                             )
                             await entity_relation_task
@@ -1335,6 +1336,7 @@ class LightRAG:
                             pipeline_status,
                             pipeline_status_lock,
                             semaphore,
+                            entity_types=entity_types
                         )
                     )
 
@@ -1380,10 +1382,11 @@ class LightRAG:
 
     async def _process_entity_relation_graph(
         self, chunk: dict[str, Any], pipeline_status=None, pipeline_status_lock=None
-    ) -> list:
+    , entity_types=None) -> list:
         try:
             chunk_results = await extract_entities(
                 chunk,
+                entity_types=entity_types,
                 global_config=asdict(self),
                 pipeline_status=pipeline_status,
                 pipeline_status_lock=pipeline_status_lock,

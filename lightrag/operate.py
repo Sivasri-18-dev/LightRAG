@@ -1353,9 +1353,11 @@ async def extract_entities(
     global_config: dict[str, str],
     pipeline_status: dict = None,
     pipeline_status_lock=None,
+    entity_types: list[str]=None,
     llm_response_cache: BaseKVStorage | None = None,
     text_chunks_storage: BaseKVStorage | None = None,
 ) -> list:
+    logger.info(f"Extracting entities, the types are :: {entity_types}\n\n")
     use_llm_func: callable = global_config["llm_model_func"]
     entity_extract_max_gleaning = global_config["entity_extract_max_gleaning"]
 
@@ -1364,9 +1366,10 @@ async def extract_entities(
     language = global_config["addon_params"].get(
         "language", PROMPTS["DEFAULT_LANGUAGE"]
     )
-    entity_types = global_config["addon_params"].get(
+    if not entity_types:
+        entity_types = global_config["addon_params"].get(
         "entity_types", PROMPTS["DEFAULT_ENTITY_TYPES"]
-    )
+        )
     example_number = global_config["addon_params"].get("example_number", None)
     if example_number and example_number < len(PROMPTS["entity_extraction_examples"]):
         examples = "\n".join(

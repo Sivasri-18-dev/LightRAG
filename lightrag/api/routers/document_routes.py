@@ -818,20 +818,21 @@ async def pipeline_enqueue_file(
     return False, ""
 
 
-async def pipeline_index_file(rag: LightRAG, file_path: Path, track_id: str = None):
+async def pipeline_index_file(rag: LightRAG, file_path: Path, track_id: str = None, entity_types=None):
     """Index a file with track_id
 
     Args:
         rag: LightRAG instance
         file_path: Path to the saved file
         track_id: Optional tracking ID
+        entity_types: Optional list of entity types to include in the index
     """
     try:
         success, returned_track_id = await pipeline_enqueue_file(
             rag, file_path, track_id
         )
         if success:
-            await rag.apipeline_process_enqueue_documents()
+            await rag.apipeline_process_enqueue_documents(entity_types=entity_types)
 
     except Exception as e:
         logger.error(f"Error indexing file {file_path.name}: {str(e)}")
@@ -1116,7 +1117,9 @@ def create_document_routes(
         "/upload", response_model=InsertResponse, dependencies=[Depends(combined_auth)]
     )
     async def upload_to_input_dir(
-        background_tasks: BackgroundTasks, file: UploadFile = File(...)
+        background_tasks: BackgroundTasks, 
+        file: UploadFile = File(...),
+        entity_types: Optional[List[str]] = None,
     ):
         """
         Upload a file to the input directory and index it.
@@ -1127,7 +1130,8 @@ def create_document_routes(
 
         Args:
             background_tasks: FastAPI BackgroundTasks for async processing
-            file (UploadFile): The file to be uploaded. It must have an allowed extension.
+            file: The file to be uploaded. It must have an allowed extension.
+            entity_types: Optional list of entity types to extract from the document.
 
         Returns:
             InsertResponse: A response object containing the upload status and a message.
@@ -1136,6 +1140,7 @@ def create_document_routes(
         Raises:
             HTTPException: If the file type is not supported (400) or other errors occur (500).
         """
+        logger.info(f"Inserting into RAG with entity types: {entity_types}")
         try:
             # Sanitize filename to prevent Path Traversal attacks
             safe_filename = sanitize_filename(file.filename, doc_manager.input_dir)
@@ -1161,7 +1166,7 @@ def create_document_routes(
             track_id = generate_track_id("upload")
 
             # Add to background tasks and get track_id
-            background_tasks.add_task(pipeline_index_file, rag, file_path, track_id)
+            background_tasks.add_task(pipeline_index_file, rag, file_path, track_id, entity_types)
 
             return InsertResponse(
                 status="success",
