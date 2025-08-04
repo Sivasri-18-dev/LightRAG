@@ -9,7 +9,7 @@ PROMPTS["DEFAULT_TUPLE_DELIMITER"] = "<|>"
 PROMPTS["DEFAULT_RECORD_DELIMITER"] = "##"
 PROMPTS["DEFAULT_COMPLETION_DELIMITER"] = "<|COMPLETE|>"
 
-PROMPTS["DEFAULT_ENTITY_TYPES"] = ["organization", "person", "geo", "event", "category"]
+PROMPTS["DEFAULT_ENTITY_TYPES"] = [ "person", "hazardous_flag"]
 
 PROMPTS["DEFAULT_USER_PROMPT"] = "n/a"
 
@@ -39,11 +39,6 @@ Format the content-level key words as ("content_keywords"{tuple_delimiter}<high_
 4. Return output in {language} as a single list of all the entities and relationships identified in steps 1 and 2. Use **{record_delimiter}** as the list delimiter.
 
 5. When finished, output {completion_delimiter}
-
-######################
----Examples---
-######################
-{examples}
 
 #############################
 ---Real Data---
